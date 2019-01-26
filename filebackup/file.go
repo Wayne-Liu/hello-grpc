@@ -10,32 +10,55 @@ import (
 	"encoding/hex"
 	"strings"
 	"crypto/sha256"
+	"path/filepath"
 )
 
 func GetFileList(path string,relative string, fileList *pb.FileList) {
 
-	rd, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, fi := range rd {
-		if fi.IsDir() {
-			relative += fi.Name() + "/"
-			GetFileList(path + fi.Name() + "/", relative,fileList)
-		} else {
-			pbfile := &pb.File{}
-			pbfile.Name = fi.Name()
-			pbfile.Size = fi.Size()
-			file,err := os.Open(path + fi.Name())
-			if err != nil {
-				log.Fatal("read file error:",err)
-			}
-			pbfile.Hash = GetSha256hash(file)
-			pbfile.Path = relative + fi.Name()
+	//rd, err := ioutil.ReadDir(path)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//for _, fi := range rd {
+	//	if fi.IsDir() {
+	//		relative += fi.Name() + "/"
+	//		GetFileList(path + fi.Name() + "/", relative,fileList)
+	//	} else {
+	//		pbfile := &pb.File{}
+	//		pbfile.Name = fi.Name()
+	//		pbfile.Size = fi.Size()
+	//		file,err := os.Open(path + fi.Name())
+	//		if err != nil {
+	//			log.Fatal("read file error:",err)
+	//		}
+	//		pbfile.Hash = GetSha256hash(file)
+	//		pbfile.Path = relative + fi.Name()
+	//
+	//		fileList.File = append(fileList.File,pbfile)
+	//	}
+	//}
 
-			fileList.File = append(fileList.File,pbfile)
-		}
+	filepath.Walk(path)
+
+}
+func findFileDir(path string, info os.FileInfo, err error) error {
+	//ok, err := filepath.Match(`*.txt`, info.Name())
+	//if ok {
+	//	fmt.Println(filepath.Dir(path), info.Name())
+	//	// 遇到 txt 文件则继续处理所在目录的下一个目录
+	//	// 注意会跳过子目录
+	//	return filepath.SkipDir
+	//}
+	//return err
+	rootDirWin := filepath.Dir(rootDir)
+	//fmt.Println("rootDirWin:"+rootDirWin)
+
+	if !info.IsDir() {
+		//fmt.Println(filepath.Dir(path), info.Name())
+		relativePath := strings.Replace(path,rootDirWin,"",-1)
+		fmt.Println(relativePath)
 	}
+	return nil
 }
 
 func GetSha256hash(file *os.File) string {
@@ -89,22 +112,28 @@ func BackupFileBinary(list *pb.FileList,basePath string) *pb.FileBinary {
 		//if err != nil {
 		//	log.Fatal("read file err :",err)
 		//}
-		buf := make([]byte,fi.Size)
-		ioutil.ReadFile(basePath+fi.Path)
+		//buf := make([]byte,fi.Size)
+		buf,err := ioutil.ReadFile(basePath+fi.Path)
+		if err != nil {
+			log.Fatal("read file error :",err)
+		}
 		fileValue.Binary = buf
 		fileBinary.Files = append(fileBinary.Files,fileValue)
+
 	}
 	return fileBinary
 }
 
 func WriteFile(basePath string, value *pb.FileBinary)  {
 	fileValues := value.Files
+	log.Println("file numbers is :", len(fileValues))
 	for _, fi := range fileValues{
 		filePath := basePath + fi.Path
 		err := os.MkdirAll(getDir(filePath), 0644)
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		w, err := os.Create(filePath)
 		if err != nil {
 			log.Fatal("Create file error:",err)
@@ -120,7 +149,12 @@ func WriteFile(basePath string, value *pb.FileBinary)  {
 }
 
 func getDir(path string) string {
-	return subString(path, 0, strings.LastIndex(path, "/"))
+	if strings.Contains(path,"/") {
+		return subString(path, 0, strings.LastIndex(path, "/"))
+	} else {
+		return subString(path, 0, strings.LastIndex(path, "\\"))
+	}
+
 }
 
 func subString(str string, start, end int) string {

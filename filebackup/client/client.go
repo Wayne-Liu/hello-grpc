@@ -27,7 +27,9 @@ func main() {
 	c := pb.NewGreeterClient(conn)
 
 	// Contact the server and print out its response.
-	basePath := "C:\\Users\\liu.wp\\go\\src\\github.com\\Wayne-Liu\\hello-grpc\\model\\"
+	//basePath := "C:\\Users\\liu.wp\\go\\src\\github.com\\Wayne-Liu\\hello-grpc\\model\\"
+	//basePath := "D:\\BC设计资料\\"
+	basePath := "D:\\apache-tomcat-8.0.35\\webapps\\docs\\"
 	if len(os.Args) > 1 {
 		basePath = os.Args[1]
 	}
