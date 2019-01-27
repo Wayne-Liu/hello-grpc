@@ -5,45 +5,70 @@ import (
 	"github.com/lunny/log"
 	"io/ioutil"
 	pb "github.com/Wayne-Liu/hello-grpc/filebackup/file"
-	"crypto/md5"
 	"fmt"
 	"io"
 	"encoding/hex"
+	"strings"
+	"crypto/sha256"
+	"path/filepath"
 )
 
-func GetFileList(path string, fileList *pb.FileList) {
+func GetFileList(path string,relative string, fileList *pb.FileList) {
 
-	rd, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, fi := range rd {
-		if fi.IsDir() {
-			GetFileList(path + fi.Name() + "/",fileList)
-		} else {
-			pbfile := &pb.File{}
-			pbfile.Name = fi.Name()
-			pbfile.Size = fi.Size()
-			file,err := os.Open(path + fi.Name())
-			if err != nil {
-				log.Fatal("read file error:",err)
-			}
-			pbfile.Hash = GetMD5hash(file)
-			pbfile.Path = path + fi.Name()
+	//rd, err := ioutil.ReadDir(path)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//for _, fi := range rd {
+	//	if fi.IsDir() {
+	//		relative += fi.Name() + "/"
+	//		GetFileList(path + fi.Name() + "/", relative,fileList)
+	//	} else {
+	//		pbfile := &pb.File{}
+	//		pbfile.Name = fi.Name()
+	//		pbfile.Size = fi.Size()
+	//		file,err := os.Open(path + fi.Name())
+	//		if err != nil {
+	//			log.Fatal("read file error:",err)
+	//		}
+	//		pbfile.Hash = GetSha256hash(file)
+	//		pbfile.Path = relative + fi.Name()
+	//
+	//		fileList.File = append(fileList.File,pbfile)
+	//	}
+	//}
 
-			fileList.File = append(fileList.File,pbfile)
-		}
+	filepath.Walk(path)
+
+}
+func findFileDir(path string, info os.FileInfo, err error) error {
+	//ok, err := filepath.Match(`*.txt`, info.Name())
+	//if ok {
+	//	fmt.Println(filepath.Dir(path), info.Name())
+	//	// 遇到 txt 文件则继续处理所在目录的下一个目录
+	//	// 注意会跳过子目录
+	//	return filepath.SkipDir
+	//}
+	//return err
+	rootDirWin := filepath.Dir(rootDir)
+	//fmt.Println("rootDirWin:"+rootDirWin)
+
+	if !info.IsDir() {
+		//fmt.Println(filepath.Dir(path), info.Name())
+		relativePath := strings.Replace(path,rootDirWin,"",-1)
+		fmt.Println(relativePath)
 	}
+	return nil
 }
 
-func GetMD5hash(file *os.File) string {
-	md5hash := md5.New()
-	if _, err := io.Copy(md5hash, file); err != nil {
+func GetSha256hash(file *os.File) string {
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
 		fmt.Println("Copy", err)
 
 	}
 
-	md := md5hash.Sum(nil)
+	md := hash.Sum(nil)
 	return hex.EncodeToString(md)
 }
 
@@ -58,7 +83,7 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
-func CheckSliceAaddOrUpdate(listA pb.FileList,listB pb.FileList) *pb.FileList {
+func CheckSliceAaddOrUpdate(listA *pb.FileList,listB *pb.FileList) *pb.FileList {
 	addFileList := &pb.FileList{}
 	fileA := listA.File
 	fileB := listB.File
@@ -77,7 +102,7 @@ func CheckSliceAaddOrUpdate(listA pb.FileList,listB pb.FileList) *pb.FileList {
 	return addFileList
 }
 
-func BackupFileBinary(list pb.FileList) *pb.FileBinary {
+func BackupFileBinary(list *pb.FileList,basePath string) *pb.FileBinary {
 	fileBinary := &pb.FileBinary{}
 	files := list.File
 	for _, fi := range files {
@@ -87,10 +112,60 @@ func BackupFileBinary(list pb.FileList) *pb.FileBinary {
 		//if err != nil {
 		//	log.Fatal("read file err :",err)
 		//}
-		buf := make([]byte,fi.Size)
-		ioutil.WriteFile(fi.Path,buf,0644)
+		//buf := make([]byte,fi.Size)
+		buf,err := ioutil.ReadFile(basePath+fi.Path)
+		if err != nil {
+			log.Fatal("read file error :",err)
+		}
 		fileValue.Binary = buf
 		fileBinary.Files = append(fileBinary.Files,fileValue)
+
 	}
 	return fileBinary
+}
+
+func WriteFile(basePath string, value *pb.FileBinary)  {
+	fileValues := value.Files
+	log.Println("file numbers is :", len(fileValues))
+	for _, fi := range fileValues{
+		filePath := basePath + fi.Path
+		err := os.MkdirAll(getDir(filePath), 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		w, err := os.Create(filePath)
+		if err != nil {
+			log.Fatal("Create file error:",err)
+		}
+
+		w.Close()
+
+		err = ioutil.WriteFile(filePath,fi.Binary,0644)
+		if err != nil {
+			log.Fatal("Write file error:",err)
+		}
+	}
+}
+
+func getDir(path string) string {
+	if strings.Contains(path,"/") {
+		return subString(path, 0, strings.LastIndex(path, "/"))
+	} else {
+		return subString(path, 0, strings.LastIndex(path, "\\"))
+	}
+
+}
+
+func subString(str string, start, end int) string {
+	rs := []rune(str)
+	length := len(rs)
+	if start < 0 || start > length {
+		panic("start is wrong")
+	}
+
+	if end < start || end > length {
+		panic("end is wrong")
+	}
+	return string(rs[start:end])
 }
