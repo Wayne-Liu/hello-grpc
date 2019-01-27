@@ -1,0 +1,48 @@
+syntax = "proto3";
+package file;
+
+//import "google/protobuf/timestamp.proto";
+
+
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc GetRemoteFileList (HelloRequest) returns (FileList) {}
+  // Sends another greeting
+  rpc SendFiles (FileBinary) returns (HelloReply) {}
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string path = 1;
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
+}
+
+message FileValue {
+    string path = 1;
+    bytes binary = 2;
+}
+
+message FileBinary {
+    repeated FileValue files = 1;
+}
+
+
+message File {
+  string name = 1;
+  int32 id = 2;  // Unique ID number for this person.
+  string path = 3;
+  string type = 4;
+  int64 size = 5;
+  string hash = 6;
+
+}
+
+// Our address book file is just one of these.
+message FileList {
+  repeated File file = 1;
+}
