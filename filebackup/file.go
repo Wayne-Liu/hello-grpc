@@ -13,32 +13,24 @@ import (
 	"path/filepath"
 )
 
-func GetFileList(path string,relative string, fileList *pb.FileList) {
+func GetFileList(path string, fileList *pb.FileList) {
 
-	//rd, err := ioutil.ReadDir(path)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//for _, fi := range rd {
-	//	if fi.IsDir() {
-	//		relative += fi.Name() + "/"
-	//		GetFileList(path + fi.Name() + "/", relative,fileList)
-	//	} else {
-	//		pbfile := &pb.File{}
-	//		pbfile.Name = fi.Name()
-	//		pbfile.Size = fi.Size()
-	//		file,err := os.Open(path + fi.Name())
-	//		if err != nil {
-	//			log.Fatal("read file error:",err)
-	//		}
-	//		pbfile.Hash = GetSha256hash(file)
-	//		pbfile.Path = relative + fi.Name()
-	//
-	//		fileList.File = append(fileList.File,pbfile)
-	//	}
-	//}
+	filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
+		if !info.IsDir(){
+			pbfile := &pb.File{}
+			pbfile.Name = info.Name()
+			pbfile.Size = info.Size()
+			file,err := os.Open(path + info.Name())
+			if err != nil {
+				log.Fatal("read file error:",err)
+			}
+			pbfile.Hash = GetSha256hash(file)
+			relativePath := strings.Replace(filePath,path,"",-1)
+			pbfile.Path = relativePath
 
-	filepath.Walk(path)
+			fileList.File = append(fileList.File,pbfile)
+		}
+	})
 
 }
 func findFileDir(path string, info os.FileInfo, err error) error {
@@ -50,13 +42,14 @@ func findFileDir(path string, info os.FileInfo, err error) error {
 	//	return filepath.SkipDir
 	//}
 	//return err
-	rootDirWin := filepath.Dir(rootDir)
+	//rootDirWin := filepath.Dir(rootDir)
 	//fmt.Println("rootDirWin:"+rootDirWin)
 
 	if !info.IsDir() {
 		//fmt.Println(filepath.Dir(path), info.Name())
-		relativePath := strings.Replace(path,rootDirWin,"",-1)
-		fmt.Println(relativePath)
+		//relativePath := strings.Replace(path,rootDirWin,"",-1)
+		//fmt.Println(relativePath)
+
 	}
 	return nil
 }
