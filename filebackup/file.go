@@ -13,14 +13,23 @@ import (
 	"path/filepath"
 )
 
-func GetFileList(path string, fileList *pb.FileList) {
+func GetFileList(path string, fileList *pb.FileList) error{
+	//currentDir := filepath.Dir(path)
+	//dir := filepath.Base(path)
+	//parentDir := strings.Replace(currentDir,dir,"",-1)
+	//判断目录是否存在，如果不存在在返回空
+	bool, err := PathExists(path)
+	if !bool {
+		return err
+	}
 
-	filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
+	err = filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
+
 		if !info.IsDir(){
 			pbfile := &pb.File{}
 			pbfile.Name = info.Name()
 			pbfile.Size = info.Size()
-			file,err := os.Open(path + info.Name())
+			file,err := os.Open(filePath)
 			if err != nil {
 				log.Fatal("read file error:",err)
 			}
@@ -30,29 +39,11 @@ func GetFileList(path string, fileList *pb.FileList) {
 
 			fileList.File = append(fileList.File,pbfile)
 		}
+		return err
 	})
-
+	return err
 }
-func findFileDir(path string, info os.FileInfo, err error) error {
-	//ok, err := filepath.Match(`*.txt`, info.Name())
-	//if ok {
-	//	fmt.Println(filepath.Dir(path), info.Name())
-	//	// 遇到 txt 文件则继续处理所在目录的下一个目录
-	//	// 注意会跳过子目录
-	//	return filepath.SkipDir
-	//}
-	//return err
-	//rootDirWin := filepath.Dir(rootDir)
-	//fmt.Println("rootDirWin:"+rootDirWin)
 
-	if !info.IsDir() {
-		//fmt.Println(filepath.Dir(path), info.Name())
-		//relativePath := strings.Replace(path,rootDirWin,"",-1)
-		//fmt.Println(relativePath)
-
-	}
-	return nil
-}
 
 func GetSha256hash(file *os.File) string {
 	hash := sha256.New()

@@ -37,7 +37,10 @@ func main()  {
 
 	//println(string(os.PathSeparator))
 	
-	filepath.Walk("D:/apache-tomcat-8.0.35/webapps/docs",findFileDir)
+	//filepath.Walk("D:/apache-tomcat-8.0.35/webapps/docs",findFileDir)
+
+	println(filepath.Base(rootDir))
+	println(filepath.Dir(rootDir))
 }
 
 func findFileDir(path string, info os.FileInfo, err error) error {

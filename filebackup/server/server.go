@@ -9,6 +9,7 @@ import (
 	"log"
 	"github.com/Wayne-Liu/hello-grpc/filebackup"
 	"os"
+	"path/filepath"
 )
 
 const (
@@ -26,14 +27,14 @@ type server struct{
 // SayHello implements helloworld.GreeterServer
 func (s *server) GetRemoteFileList(ctx context.Context, in *pb.HelloRequest) (*pb.FileList, error) {
 	log.Printf("FilePath is: %v", in.Path)
-	fileBasePath := basePath + in.Path+ "/"
+	fileBasePath := filepath.Dir(basePath) + string(os.PathSeparator) + in.Path+ string(os.PathSeparator)
 	s.fileBasePath = fileBasePath
 
 	if !Exists(fileBasePath){
 		os.Mkdir(fileBasePath,0644)
 	}
 	fileList := &pb.FileList{}
-	filebackup.GetFileList(fileBasePath,"",fileList)
+	filebackup.GetFileList(fileBasePath,fileList)
 
 	return fileList, nil
 }
