@@ -43,6 +43,8 @@ func main()  {
 	println(filepath.Dir(rootDir))
 }
 
+
+
 func findFileDir(path string, info os.FileInfo, err error) error {
 	//ok, err := filepath.Match(`*.txt`, info.Name())
 	//if ok {
