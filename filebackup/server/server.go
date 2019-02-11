@@ -10,6 +10,8 @@ import (
 	"github.com/Wayne-Liu/hello-grpc/filebackup"
 	"os"
 	"path/filepath"
+	"fmt"
+	"encoding/json"
 )
 
 const (
@@ -23,6 +25,10 @@ const (
 type server struct{
 	fileBasePath string
 }
+
+type Configuration struct {
+	ServerBackupBasePath string
+} 
 
 // SayHello implements helloworld.GreeterServer
 func (s *server) GetRemoteFileList(ctx context.Context, in *pb.HelloRequest) (*pb.FileList, error) {
@@ -47,6 +53,7 @@ func (s *server) SendFiles(ctx context.Context, in *pb.FileBinary) (*pb.HelloRep
 }
 
 func main() {
+	initArgs()
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -71,4 +78,15 @@ func Exists(path string) bool {
 		return false
 	}
 	return true
+}
+
+func initArgs()  {
+	file, _ := os.Open("filebackup/conf/config.json")
+	decoder := json.NewDecoder(file)
+	configuration := new(Configuration)
+	err := decoder.Decode(&configuration)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	fmt.Println(configuration.ServerBackupBasePath)
 }
