@@ -9,6 +9,9 @@ import (
 	"log"
 	"github.com/Wayne-Liu/hello-grpc/filebackup"
 	"os"
+	"path/filepath"
+	"fmt"
+	"encoding/json"
 )
 
 const (
@@ -23,17 +26,21 @@ type server struct{
 	fileBasePath string
 }
 
+type Configuration struct {
+	ServerBackupBasePath string
+} 
+
 // SayHello implements helloworld.GreeterServer
 func (s *server) GetRemoteFileList(ctx context.Context, in *pb.HelloRequest) (*pb.FileList, error) {
 	log.Printf("FilePath is: %v", in.Path)
-	fileBasePath := basePath + in.Path+ "/"
+	fileBasePath := filepath.Dir(basePath) + string(os.PathSeparator) + in.Path+ string(os.PathSeparator)
 	s.fileBasePath = fileBasePath
 
 	if !Exists(fileBasePath){
 		os.Mkdir(fileBasePath,0644)
 	}
 	fileList := &pb.FileList{}
-	filebackup.GetFileList(fileBasePath,"",fileList)
+	filebackup.GetFileList(fileBasePath,fileList)
 
 	return fileList, nil
 }
@@ -46,6 +53,7 @@ func (s *server) SendFiles(ctx context.Context, in *pb.FileBinary) (*pb.HelloRep
 }
 
 func main() {
+	initArgs()
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -70,4 +78,15 @@ func Exists(path string) bool {
 		return false
 	}
 	return true
+}
+
+func initArgs()  {
+	file, _ := os.Open("filebackup/conf/config.json")
+	decoder := json.NewDecoder(file)
+	configuration := new(Configuration)
+	err := decoder.Decode(&configuration)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	fmt.Println(configuration.ServerBackupBasePath)
 }

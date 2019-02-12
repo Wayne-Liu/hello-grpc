@@ -9,6 +9,7 @@ import (
 	"context"
 	"strings"
 	"github.com/Wayne-Liu/hello-grpc/filebackup"
+	"path/filepath"
 )
 
 const (
@@ -39,9 +40,11 @@ func main() {
 	fileListLocal := &pb.FileList{}
 	//fileListRemote := &pb.FileList{}
 
-	filebackup.GetFileList(basePath,"",fileListLocal)
+	filebackup.GetFileList(basePath,fileListLocal)
+
 	helloRequest := &pb.HelloRequest{}
-	helloRequest.Path = GetRootDir(basePath)
+
+	helloRequest.Path = filepath.Base(basePath)
 	fileListRemote, err := c.GetRemoteFileList(ctx, helloRequest)
 
 	updateFileList := filebackup.CheckSliceAaddOrUpdate(fileListLocal,fileListRemote)
